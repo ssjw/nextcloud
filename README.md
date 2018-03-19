@@ -55,7 +55,7 @@ Untar the Nextcloud archive file.
 
 ## Configure Apache
 
-    echo << EOF > /etc/apache2/sites-available/nextcloud.conf
+    cat - << EOF > /etc/apache2/sites-available/nextcloud.conf
     Alias /nextcloud "/var/www/nextcloud/"
 
     <Directory /var/www/nextcloud/>
@@ -70,9 +70,9 @@ Untar the Nextcloud archive file.
       SetEnv HTTP_HOME /var/www/nextcloud
 
     </Directory>
+    EOF
 
     ln -s /etc/apache2/sites-available/nextcloud.conf /etc/apache2/sites-enabled/nextcloud.conf
-    EOF
 
 Enable Apache modules.
 
@@ -93,7 +93,7 @@ Restart Apache.
 
 Configure prettier URLs.
 
-    sudo -u www-data echo << EOF > /var/www/nextcloud/config/config.php
+    sudo -u www-data cat - << EOF > /var/www/nextcloud/config/config.php
     <?php
 
     $CONFIG = array(
@@ -144,4 +144,12 @@ Now create the Nextcloud database.
         --database-name "nextcloud"  --database-user "nextcloud" \
         --database-pass "Get-from-lastpass" --admin-user "admin" \
         --admin-pass "Get-from-lastpass"
+
+## Visit the new Nextcloud site.
+
+Point browser to https://hostname/nextcloud/
+
+The "/" at the end is significant.  I will need to investigate whether
+there is some configuration such that you can get the Nextcloud site
+with or without the trailing slash.
 
