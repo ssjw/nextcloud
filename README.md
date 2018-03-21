@@ -55,6 +55,8 @@ Untar the Nextcloud archive file.
 
 ## Configure Apache
 
+### Setup the Apache Nextcloud virtual host.
+
     cat - << EOF > /etc/apache2/sites-available/nextcloud.conf
     Alias /nextcloud "/var/www/nextcloud/"
 
@@ -74,40 +76,37 @@ Untar the Nextcloud archive file.
 
     ln -s /etc/apache2/sites-available/nextcloud.conf /etc/apache2/sites-enabled/nextcloud.conf
 
-## Enable HTTP Strict Transport Security
+### Enable HTTP Strict Transport Security.
 
 From the Nextcloud documentation:
 
-While redirecting all traffic to HTTPS is good, it may not completely
-prevent man-in-the-middle attacks. Thus administrators are encouraged to
-set the HTTP Strict Transport Security header, which instructs browsers
-to not allow any connection to the Nextcloud instance using HTTP, and it
-attempts to prevent site visitors from bypassing invalid certificate
-warnings.
+> While redirecting all traffic to HTTPS is good, it may not completely
+> prevent man-in-the-middle attacks. Thus administrators are encouraged to
+> set the HTTP Strict Transport Security header, which instructs browsers
+> to not allow any connection to the Nextcloud instance using HTTP, and it
+> attempts to prevent site visitors from bypassing invalid certificate
+> warnings.
 
-This can be achieved by setting the following settings within the Apache
-VirtualHost file:
+> This can be achieved by setting the following settings within the Apache
+> VirtualHost file:
 
-    <VirtualHost *:443>
-      ServerName cloud.nextcloud.com
-      <IfModule mod_headers.c>
-        Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains"
-      </IfModule>
-    </VirtualHost>
+>     <VirtualHost *:443>
+>       ServerName cloud.nextcloud.com
+>       <IfModule mod_headers.c>
+>         Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains"
+>       </IfModule>
+>     </VirtualHost>
 
-<div class="alert alert-warning">
-Warning
-We recommend the additional setting `; preload` to be
-added to that header. Then the domain will be added to
-an hardcoded list that is shipped with all major
-browsers and enforce HTTPS upon those domains. See the
-HSTS preload website for more information. Due to the
-policy of this list you need to add it to the above
-example for yourself once you are sure that this is
-what you want. Removing the domain from this list could
-take some months until it reaches all installed
-browsers.
-</div>
+> *Warning:* We recommend the additional setting `; preload` to be added
+> to that header. Then the domain will be added to
+> an hardcoded list that is shipped with all major browsers and enforce
+> HTTPS upon those domains. See the HSTS preload website for more
+> information. Due to the policy of this list you need to add it to the
+> above example for yourself once you are sure that this is what you want.
+> Removing the domain from this list could take some months until it
+> reaches all installed browsers.
+
+### Additional Apache setup
 
 Enable Apache modules.
 
