@@ -153,3 +153,12 @@ The "/" at the end is significant.  I will need to investigate whether
 there is some configuration such that you can get the Nextcloud site
 with or without the trailing slash.
 
+## Additional Setup
+
+- Enable encryption
+- Setup external data
+  - s3fs?
+  - goofys?
+- Create and mount a second btrfs EBS device
+- Move nextcloud DB to the DB subvolume on the second EBS volume
+- Enable External Storages app
