@@ -193,6 +193,8 @@ with or without the trailing slash.
 ## Additional Setup
 
 - Create and mount a second btrfs EBS device
+- Should I use the s3 backed FUSE mounted filesystem as the only data
+    directory for Nextcloud?
 - Move data store for Nextcloud to second EBS device
   - Place data directory outside of /var/www
 - Enable encryption
@@ -202,5 +204,3 @@ with or without the trailing slash.
   - goofys?
 - Move nextcloud DB to the DB subvolume on the second EBS volume
 - Enable SElinux?
-- Should I use the s3 backed FUSE mounted filesystem as the only data
-    directory for Nextcloud?
