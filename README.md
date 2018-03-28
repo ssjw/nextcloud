@@ -9,6 +9,9 @@ From a new EC2 instance from an Ubuntu 16.04 ami
     apt upgrade
     apt install mosh tmux tmuxinator
 
+Using second local EBS disk of size 16 GB or so, which appears as
+`/dev/xvdb`:
+
     cfdisk /dev/xvdb
     # Create a single partition
     mkfs.btrfs --label nextcloud --data single --metadata single /dev/xvdb1 
@@ -86,18 +89,18 @@ From the Nextcloud documentation:
 > to not allow any connection to the Nextcloud instance using HTTP, and it
 > attempts to prevent site visitors from bypassing invalid certificate
 > warnings.
-
+>
 > This can be achieved by setting the following settings within the Apache
 > VirtualHost file:
-
+>
 >     <VirtualHost *:443>
 >       ServerName cloud.nextcloud.com
 >       <IfModule mod_headers.c>
 >         Header always set Strict-Transport-Security "max-age=15552000; includeSubDomains"
 >       </IfModule>
 >     </VirtualHost>
-
-> *Warning:* We recommend the additional setting `; preload` to be added
+>
+> **Warning:** We recommend the additional setting `; preload` to be added
 > to that header. Then the domain will be added to
 > an hardcoded list that is shipped with all major browsers and enforce
 > HTTPS upon those domains. See the HSTS preload website for more
@@ -189,12 +192,15 @@ with or without the trailing slash.
 
 ## Additional Setup
 
+- Create and mount a second btrfs EBS device
+- Move data store for Nextcloud to second EBS device
+  - Place data directory outside of /var/www
 - Enable encryption
+- Enable External Storages app
 - Setup external data
   - s3fs?
   - goofys?
-- Create and mount a second btrfs EBS device
 - Move nextcloud DB to the DB subvolume on the second EBS volume
-- Enable External Storages app
 - Enable SElinux?
-- Place data directory outside of /var/www
+- Should I use the s3 backed FUSE mounted filesystem as the only data
+    directory for Nextcloud?
