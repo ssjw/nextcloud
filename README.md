@@ -7,10 +7,10 @@ From a new EC2 instance from an Ubuntu 16.04 ami
     sudo su -
     apt update
     apt upgrade
-    apt install mosh tmux tmuxinator
+    apt install mosh tmux tmuxinator btfs
 
-Using second local EBS disk of size 16 GB or so, which appears as
-`/dev/xvdb`:
+Setup second local EBS disk of size 16 GB or so, which appears as
+`/dev/xvdb` as the location for the Nextcloud MySQL database:
 
     cfdisk /dev/xvdb
     # Create a single partition
@@ -22,6 +22,25 @@ Using second local EBS disk of size 16 GB or so, which appears as
     cd btrfs
     btrfs subvolume create /mnt/btrfs/nc-file-data
     btrfs subvolume create /mnt/btrfs/nc-db-data
+    umount /mnt/btrfs
+
+    echo "LABEL=nextcloud /var/lib/mysql btrfs subvol=nc-db-data,noatime,compress=lzo,nodatacow 0 1" >> /etc/fstab
+    mount /var/lib/mysql
+
+Setup S3 as backing store for the Nextcloud data directory. First
+compile and install s3fs (TODO:)
+
+Then setup the mountpoint and mount.
+
+    mkdir /var/nextcloud/data
+
+    echo MYIDENTITY:MYCREDENTIAL > /etc/passwd-s3fs
+    chmod 600 /etc/passwd-s3fs
+
+    cat - << EOF >> /etc/fstab
+    the-real-s3-bucket-name /var/nextcloud/data fuse.s3fs nodev,noexec,nosuid,_netdev,allow_other,use_sse=kmsid:<kms id> 0 0
+    EOF
+
 
 ## Installing NextCloud and additional software and PHP modules
 
@@ -192,15 +211,11 @@ with or without the trailing slash.
 
 ## Additional Setup
 
-- Create and mount a second btrfs EBS device
-- Should I use the s3 backed FUSE mounted filesystem as the only data
-    directory for Nextcloud?
-- Move data store for Nextcloud to second EBS device
-  - Place data directory outside of /var/www
-- Enable encryption
-- Enable External Storages app
-- Setup external data
-  - s3fs?
-  - goofys?
-- Move nextcloud DB to the DB subvolume on the second EBS volume
-- Enable SElinux?
+[ ] Setup S3 backed mounted filesystem using s3fs, mountpoint
+/var/nextcloud/data
+[ ] Move data store for Nextcloud to S3 backed mounted filesystem. See
+this [forum topic][1].
+[ ] Enable encryption
+[ ] Enable External Storages app
+
+[1]:(https://help.nextcloud.com/t/is-there-a-safe-and-reliable-way-to-move-data-directory-out-of-web-root/3642/4)
