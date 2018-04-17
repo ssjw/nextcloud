@@ -111,6 +111,9 @@ Untar the Nextcloud archive file.
 
 ## Enable HTTP Strict Transport Security.
 
+> **NOTE**: I don't think the next bit is necessary, since I don't plan
+> to allow http connections, only https.
+
 From the Nextcloud documentation:
 
 > While redirecting all traffic to HTTPS is good, it may not completely
@@ -152,11 +155,12 @@ Enable Apache modules.
 Set ServerName for all sites.
 
     vi /etc/apache2/sites-available/000-default.conf
-    # Set ServerName to nextcloud.pigsn.space
+
+and set ServerName to nextcloud.pigsn.space
 
 Restart Apache.
 
-    service apache2 restart
+    systemctl restart apache2
 
 Configure prettier URLs.
 
@@ -169,12 +173,13 @@ Configure prettier URLs.
     'htaccess.RewriteBase' => '/nextcloud'
 
     );
+    EOF
 
 Configure SSL.
 
     a2enmod ssl
     a2ensite default-ssl
-    service apache2 reload
+    systemctl restart apache2
 
 Create a self-signed certificate for now.  Later configure Let's
 Encrypt.  From /usr/share/doc/apache2/README.Debian.gz.
@@ -190,10 +195,11 @@ First update some configuration.
 
     vi /etc/mysql/mariadb.conf.d/50-server.cnf
 
-    # Add these lines to [mysqld] section.
-    # innodb_large_prefix=true
-    # innodb_file_format=barracuda
-    # innodb_file_per_table=1
+Add these lines to `[mysqld]` section.
+
+    innodb_large_prefix=true
+    innodb_file_format=barracuda
+    innodb_file_per_table=1
 
 Now create the Nextcloud database.
 
@@ -212,7 +218,8 @@ Now create the Nextcloud database.
     sudo -u www-data php occ  maintenance:install --database "mysql" \
         --database-name "nextcloud"  --database-user "nextcloud" \
         --database-pass "Get-from-lastpass" --admin-user "admin" \
-        --admin-pass "Get-from-lastpass"
+        --admin-pass "Get-from-lastpass" \
+        --data-dir="/var/lib/nextcloud/data"
 
 # Visit the new Nextcloud site.
 
