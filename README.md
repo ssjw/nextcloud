@@ -1,58 +1,69 @@
-# nextcloud
+<header>
 
-## Preparing a Nextcloud server
+Nextcloud
+=========
 
-From a new EC2 instance from an Ubuntu 16.04 ami
+</header>
+<main>
+
+# Preparing a Nextcloud server
+
+From a Raspberry Pi with Raspian Stretch...
 
     sudo su -
     apt update
     apt upgrade
     apt install mosh tmux tmuxinator btfs
 
-Setup second local EBS disk of size 16 GB or so, which appears as
-`/dev/xvdb` as the location for the Nextcloud MySQL database:
+Setup large capacity disk as the location for the Nextcloud MySQL
+database and file data store.
 
-    cfdisk /dev/xvdb
-    # Create a single partition
-    mkfs.btrfs --label nextcloud --data single --metadata single /dev/xvdb1 
+    gdisk /dev/sda
+    # Create a partition for root of 16G, a partition for swap of 512M,
+    # and a partition for Nextcloud as the rest of the disk.
+    # Setup swap as directed in
+    # ssjw/new-host-setup/backup-pi-configuration.md
+
+    # Setup encryption as per the same backup-pi-configuration.md.
+
+    mkfs.btrfs --label nextcloud --data single --metadata dup /dev/mapper/enc1
     
     cd /mnt
     mkdir btrfs
-    mount /dev/xvdb1 btrfs
-    cd btrfs
+    mount dev/mapper/enc1 btrfs
     btrfs subvolume create /mnt/btrfs/nc-file-data
     btrfs subvolume create /mnt/btrfs/nc-db-data
     umount /mnt/btrfs
 
-    echo "LABEL=nextcloud /var/lib/mysql btrfs subvol=nc-db-data,noatime,compress=lzo,nodatacow 0 1" >> /etc/fstab
+    echo "/dev/mapper/enc1 /var/lib/mysql btrfs subvol=nc-db-data,noatime,nodatacow 0 1" >> /etc/fstab
     mount /var/lib/mysql
+    echo "/dev/mapper/enc1 /var/nextcloud/data btrfs subvol=nc-file-data,noatime,compress=lzo 0 1" >> /etc/fstab
+    mount /var/nextcloud/data
 
-Setup S3 as backing store for the Nextcloud data directory. First
-compile and install s3fs (TODO:)
-
-Then setup the mountpoint and mount.
-
-    mkdir /var/nextcloud/data
-
-    echo MYIDENTITY:MYCREDENTIAL > /etc/passwd-s3fs
-    chmod 600 /etc/passwd-s3fs
-
-    cat - << EOF >> /etc/fstab
-    the-real-s3-bucket-name /var/nextcloud/data fuse.s3fs nodev,noexec,nosuid,_netdev,allow_other,use_sse=kmsid:<kms id> 0 0
-    EOF
-
-
-## Installing NextCloud and additional software and PHP modules
+# Installing NextCloud and additional software and PHP modules
 
 Install additional packages (software and PHP modules).
 
     apt-get install apache2 mariadb-server libapache2-mod-php7.0
     apt-get install php7.0-gd php7.0-json php7.0-mysql php7.0-curl php7.0-mbstring
     apt-get install php7.0-intl php7.0-mcrypt php-imagick php7.0-xml php7.0-zip
-    apt-get install php7.0-bz2 php7.0-ldap php-smb php7.0-imap
+    # php-smb required php-5.0 packages on Raspbian.  Probably don't
+    # need it.
+    #apt-get install php7.0-bz2 php7.0-ldap php-smb php7.0-imap
+    apt-get install php7.0-bz2 php7.0-ldap php7.0-imap
     apt-get install php7.0-gmp php-apcu php-memcached php-redis
     apt-get install ffmpeg libreoffice 
 
+## Set mariadb and apache2 Not to Start on Boot
+They should not be started until the filesystem for Nextcloud data and
+Mariadb has been mounted.
+
+    systemctl stop apache2
+    systemctl disable apache2
+    systemctl stop mariadb
+    systemctl disable mariadb
+
+# Install Nextcloud
 Download and verify the Nextcloud archive file.
 
     cd /var/www
@@ -68,16 +79,16 @@ Untar the Nextcloud archive file.
 
     tar -xjf nextcloud-13.0.1.tar.bz2
 
-## Adjust file ownership and permissions
+# Adjust file ownership and permissions
 
     cd /var/www
     chown -R www-data:www-data nextcloud
     find nextcloud/ -type d -exec chmod 750 {} \;
     find nextcloud/ -type f -exec chmod 640 {} \;
 
-## Configure Apache
+# Configure Apache
 
-### Setup the Apache Nextcloud virtual host.
+## Setup the Apache Nextcloud virtual host.
 
     cat - << EOF > /etc/apache2/sites-available/nextcloud.conf
     Alias /nextcloud "/var/www/nextcloud/"
@@ -98,7 +109,7 @@ Untar the Nextcloud archive file.
 
     ln -s /etc/apache2/sites-available/nextcloud.conf /etc/apache2/sites-enabled/nextcloud.conf
 
-### Enable HTTP Strict Transport Security.
+## Enable HTTP Strict Transport Security.
 
 From the Nextcloud documentation:
 
@@ -128,7 +139,7 @@ From the Nextcloud documentation:
 > Removing the domain from this list could take some months until it
 > reaches all installed browsers.
 
-### Additional Apache setup
+## Additional Apache setup
 
 Enable Apache modules.
 
@@ -173,7 +184,7 @@ virtual machine's IP address, then run the following command.
 
     make-ssl-cert generate-default-snakeoil --force-overwrite
 
-## Create the MariaDB Database
+# Create the MariaDB Database
 
 First update some configuration.
 
@@ -193,7 +204,9 @@ Now create the Nextcloud database.
     GRANT ALL PRIVILEGES ON nextcloud.* TO 'nextcloud'@'localhost' IDENTIFIED BY 'Get-from-lastpass';
     quit
 
-## Run the Nextcloud installer.
+# Run the Nextcloud installer.
+> **TODO**: Figure out how to configure the Nextcloud data directory
+> during this installation step.
 
     cd /var/www/nextcloud/
     sudo -u www-data php occ  maintenance:install --database "mysql" \
@@ -201,7 +214,7 @@ Now create the Nextcloud database.
         --database-pass "Get-from-lastpass" --admin-user "admin" \
         --admin-pass "Get-from-lastpass"
 
-## Visit the new Nextcloud site.
+# Visit the new Nextcloud site.
 
 Point browser to https://hostname/nextcloud/
 
@@ -209,13 +222,9 @@ The "/" at the end is significant.  I will need to investigate whether
 there is some configuration such that you can get the Nextcloud site
 with or without the trailing slash.
 
-## Additional Setup
+# Additional Setup
 
-[ ] Setup S3 backed mounted filesystem using s3fs, mountpoint
-/var/nextcloud/data
-[ ] Move data store for Nextcloud to S3 backed mounted filesystem. See
-this [forum topic][1].
 [ ] Enable encryption
 [ ] Enable External Storages app
 
-[1]:(https://help.nextcloud.com/t/is-there-a-safe-and-reliable-way-to-move-data-directory-out-of-web-root/3642/4)
+</main>
