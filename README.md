@@ -37,8 +37,9 @@ database and file data store.
 
     echo "/dev/mapper/enc1 /var/lib/mysql btrfs subvol=nc-db-data,noatime,nodatacow 0 1" >> /etc/fstab
     mount /var/lib/mysql
-    echo "/dev/mapper/enc1 /var/nextcloud/data btrfs subvol=nc-file-data,noatime,compress=lzo 0 1" >> /etc/fstab
-    mount /var/nextcloud/data
+    echo "/dev/mapper/enc1 /var/nextcloud btrfs subvol=nc-file-data,noatime,compress=lzo 0 1" >> /etc/fstab
+    mount /var/nextcloud
+    mkdir /var/nextcloud/data
 
 # Installing NextCloud and additional software and PHP modules
 
@@ -167,7 +168,7 @@ Configure prettier URLs.
     sudo -u www-data cat - << EOF > /var/www/nextcloud/config/config.php
     <?php
 
-    $CONFIG = array(
+    \$CONFIG = array(
 
     'overwrite.cli.url' => 'https://nextcloud.pigsn.space/nextcloud',
     'htaccess.RewriteBase' => '/nextcloud'
@@ -214,12 +215,13 @@ Now create the Nextcloud database.
 > **TODO**: Figure out how to configure the Nextcloud data directory
 > during this installation step.
 
+    chown www-data.www-data /var/nextcloud/data
     cd /var/www/nextcloud/
     sudo -u www-data php occ  maintenance:install --database "mysql" \
-        --database-name "nextcloud"  --database-user "nextcloud" \
+        --database-name "nextcloud" --database-user "nextcloud" \
         --database-pass "Get-from-lastpass" --admin-user "admin" \
         --admin-pass "Get-from-lastpass" \
-        --data-dir="/var/lib/nextcloud/data"
+        --data-dir "/var/nextcloud/data"
 
 # Visit the new Nextcloud site.
 
