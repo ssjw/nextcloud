@@ -6,6 +6,8 @@ Nextcloud
 </header>
 <main>
 
+> **NOTE**: These instructions are for version 13 of Nextcloud.
+
 # Preparing a Nextcloud server
 
 From a Raspberry Pi with Raspian Stretch...
@@ -171,7 +173,8 @@ Configure prettier URLs.
     \$CONFIG = array(
 
     'overwrite.cli.url' => 'https://nextcloud.pigsn.space/nextcloud',
-    'htaccess.RewriteBase' => '/nextcloud'
+    'htaccess.RewriteBase' => '/nextcloud',
+    'memcache.local' => '\OC\Memcache\APCu',
 
     );
     EOF
@@ -189,6 +192,17 @@ First update DNS record for nextcloud.pigsn.space to point to this
 virtual machine's IP address, then run the following command.
 
     make-ssl-cert generate-default-snakeoil --force-overwrite
+
+Update php.ini to enable better performance.  Edit
+`/etc/php/7.0/apache2/php.ini` and add these lines:
+
+    opcache.enable=1
+    opcache.enable_cli=1
+    opcache.interned_strings_buffer=8
+    opcache.max_accelerated_files=10000
+    opcache.memory_consumption=128
+    opcache.save_comments=1
+    opcache.revalidate_freq=1
 
 # Create the MariaDB Database
 
@@ -232,6 +246,19 @@ there is some configuration such that you can get the Nextcloud site
 with or without the trailing slash.
 
 # Additional Setup
+
+Setup a cron job for Nextcloud. The following command will start an
+editor to add a cron job for Nextcloud
+
+    crontab -u www-data -e
+
+Add this line, write the file and exit.
+
+    */15  *  *  *  * php -f /var/www/nextcloud/cron.php
+
+As the admin user in Nextcloud, navigate to Basic Settings and change
+Background Jobs to "Cron".
+
 
 [ ] Enable encryption
 [ ] Enable External Storages app
