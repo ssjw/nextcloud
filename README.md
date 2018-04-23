@@ -23,10 +23,16 @@ database and file data store.
     gdisk /dev/sda
     # Create a partition for root of 16G, a partition for swap of 512M,
     # and a partition for Nextcloud as the rest of the disk.
-    # Setup swap as directed in
-    # ssjw/new-host-setup/backup-pi-configuration.md
 
-    # Setup encryption as per the same backup-pi-configuration.md.
+Setup swap as directed in ssjw/new-host-setup/backup-pi-configuration.md
+
+Setup encryption as per the same backup-pi-configuration.md.
+
+Setup a user using the `new-host-setup/bin/adduser-with-defaults` and
+user unlocker using the `new-host-setup/bin/adduser-unlocker`
+shell script.
+
+## Create filesystem and mount points.
 
     mkfs.btrfs --label nextcloud --data single --metadata dup /dev/mapper/enc1
     
@@ -35,6 +41,7 @@ database and file data store.
     mount dev/mapper/enc1 btrfs
     btrfs subvolume create /mnt/btrfs/nc-file-data
     btrfs subvolume create /mnt/btrfs/nc-db-data
+    btrfs subvolume create /mnt/btrfs/home
     umount /mnt/btrfs
 
     echo "/dev/mapper/enc1 /var/lib/mysql btrfs subvol=nc-db-data,noatime,nodatacow 0 1" >> /etc/fstab
@@ -42,6 +49,18 @@ database and file data store.
     echo "/dev/mapper/enc1 /var/nextcloud btrfs subvol=nc-file-data,noatime,compress=lzo 0 1" >> /etc/fstab
     mount /var/nextcloud
     mkdir /var/nextcloud/data
+    echo "/dev/mapper/enc1 /home btrfs subvol=home,noatime,compress=lzo 0 1" >> /etc/fstab
+    mount -t btrfs -o subvol=home,noatime,compress=lzo /dev/mapper/enc1 /mnt/btrfs
+    cp -a /home/* /mnt/btrfs
+    umount /mnt/btrfs
+
+Now logout and ssh back in as user unlocker, and run:
+
+    mount /home
+
+You can now logout as unlocker and log back in using your typical user
+name.
+
 
 # Installing NextCloud and additional software and PHP modules
 
@@ -204,6 +223,21 @@ Update php.ini to enable better performance.  Edit
     opcache.save_comments=1
     opcache.revalidate_freq=1
 
+# Get a Domain Valiation (DV) Cert from Let's Encrypt
+
+Follow the instructions on the [Let's
+Encrypt](https://letsencrypt.org/getting-started/) website. Choose
+`/var/www/html` as the webroot, and when the certbot command asks,
+choose HTTPS as the only way to contact this host.
+
+> **NOTE** There are a couple of things to keep in mind:
+> 1. When running Certbot, the webroot to use is `/var/www/html` in the
+>    default Apache2 configuration.
+> 2. For getting the initial cert from Certbot, Apache needs to be
+>    listening on port 80.
+> 3. Make sure your router is forwarding port 80 to the host you're
+>    trying to get a DV cert for.
+
 # Create the MariaDB Database
 
 First update some configuration.
@@ -226,11 +260,14 @@ Now create the Nextcloud database.
     quit
 
 # Run the Nextcloud installer.
-> **TODO**: Figure out how to configure the Nextcloud data directory
-> during this installation step.
 
     chown www-data.www-data /var/nextcloud/data
     cd /var/www/nextcloud/
+
+You might want to make a shell script with this command and execute the
+shell script. That will be easier than trying to modify it on the
+command line.
+
     sudo -u www-data php occ  maintenance:install --database "mysql" \
         --database-name "nextcloud" --database-user "nextcloud" \
         --database-pass "Get-from-lastpass" --admin-user "admin" \
@@ -259,8 +296,15 @@ Add this line, write the file and exit.
 As the admin user in Nextcloud, navigate to Basic Settings and change
 Background Jobs to "Cron".
 
+# Operating a Nextcloud Server
+## Making Nightly Backups
 
-[ ] Enable encryption
-[ ] Enable External Storages app
+Run script nightly at 2:30 AM through Cron.
+
+    crontab -u www-data -e
+
+Add this line, write the file and exit.
+
+    30  2  *  *  * /usr/local/bin/nextcloud-backup.sh
 
 </main>
